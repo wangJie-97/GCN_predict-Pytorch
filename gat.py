@@ -33,7 +33,8 @@ class GraphAttentionLayer(nn.Module):
         :return:
             output features, [B, N, D].
         """
-
+        # 不是在这里吧
+        # self.TAt = Temporal_Attention_layer(num_of_vertices, num_of_features, num_of_timesteps)
         h = self.W(inputs)  # [B, N, D]，一个线性层，就是第一步中公式的 W*h
 
         # 下面这个就是，第i个节点和第j个节点之间的特征做了一个内积，表示它们特征之间的关联强度
@@ -77,6 +78,71 @@ class GATSubNet(nn.Module): # 这个是多头注意力机制
 
         return self.act(outputs)
 
+class Temporal_Attention_layer(nn.Module):
+    """
+    compute temporal attention scores
+    时空注意力快，如何参考？
+    它是怎么被使用的，被整合到最后输出的？
+    参数怎么耦合？
+    它返回了什么 ？与原先输入相同吗？
+    问题就是参数耦合了，找好位置即可，下次继续，这个有写头，论文可以加很多内容，参考着论文的时空块来拼接了
+    """
+
+    def __init__(self, num_of_vertices, num_of_features, num_of_timesteps):
+        """
+        Temporal Attention Layer
+        :param num_of_vertices: int
+        :param num_of_features: int
+        :param num_of_timesteps: int
+        """
+        super(Temporal_Attention_layer, self).__init__()
+
+        global device
+        self.U_1 = torch.randn(num_of_vertices, requires_grad=True).to(device)
+        self.U_2 = torch.randn(num_of_features, num_of_vertices, requires_grad=True).to(device)
+        self.U_3 = torch.randn(num_of_features, requires_grad=True).to(device)
+        self.b_e = torch.randn(1, num_of_timesteps, num_of_timesteps, requires_grad=True).to(device)
+        self.V_e = torch.randn(num_of_timesteps, num_of_timesteps, requires_grad=True).to(device)
+
+    def forward(self, x):
+        """
+        Parameters
+        ----------
+        x: torch.tensor, x^{(r - 1)}_h
+                       shape is (batch_size, V, C_{r-1}, T_{r-1})
+                       相当于这里的这个项目中的data
+
+        Returns
+        ----------
+        E_normalized: torch.tensor, S', spatial attention scores
+                      shape is (batch_size, T_{r-1}, T_{r-1})
+
+        """
+        # _, num_of_vertices, num_of_features, num_of_timesteps = x.shape
+        # N == batch_size
+        # V == num_of_vertices
+        # C == num_of_features
+        # T == num_of_timesteps
+
+        # compute temporal attention scores
+        # shape of lhs is (N, T, V)
+        lhs = torch.matmul(torch.matmul(x.permute(0, 3, 2, 1), self.U_1),
+                           self.U_2)
+
+        # shape is (batch_size, V, T)
+        # rhs = torch.matmul(self.U_3, x.transpose((2, 0, 1, 3)))
+        rhs = torch.matmul(x.permute((0, 1, 3, 2)), self.U_3)  # Is it ok to switch the position?
+
+        product = torch.matmul(lhs, rhs)  # wd: (batch_size, T, T)
+
+        # (batch_size, T, T)
+        E = torch.matmul(self.V_e, torch.sigmoid(product + self.b_e))
+
+        # normailzation
+        E = E - torch.max(E, 1, keepdim=True)[0]
+        exp = torch.exp(E)
+        E_normalized = exp / torch.sum(exp, 1, keepdim=True)
+        return E_normalized
 
 class GATNet(nn.Module):
     def __init__(self, in_c, hid_c, out_c, n_heads):
@@ -98,7 +164,7 @@ class GATNet(nn.Module):
        然后用nn.ModuleList将SubNet分别拎出来处理，参考多头注意力的处理，同理
 
        """
-
+        # self.TAt = Temporal_Attention_layer(num_of_vertices, num_of_features, num_of_timesteps)
         prediction = self.subnet(flow, graph).unsqueeze(2)  # [B, N, 1, C]，这个１加上就表示预测的是未来一个时刻
 
         return prediction
