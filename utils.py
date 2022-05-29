@@ -49,7 +49,7 @@ def visualize_result(h5_file, nodes_id, time_se, visualize_file):
     plt.figure()
     plt.grid(True, linestyle="-.", linewidth=0.5)
     plt.plot(np.array([t for t in range(time_se[1] - time_se[0])]), plot_prediction, ls="-", marker=" ", color="r")
-    plt.plot(np.array([t for t in range(time_se[1] - time_se[0])]), plot_target, ls="-", marker=" ", color="b")
+    plt.plot(np.array([t for t in range(time_se[1] - time_se[0])]), plot_target, ls=":", marker=" ", color="b")
 
     plt.legend(["prediction", "target"], loc="upper right")
 
@@ -57,5 +57,5 @@ def visualize_result(h5_file, nodes_id, time_se, visualize_file):
               np.min(np.array([np.min(plot_prediction), np.min(plot_target)])),
               np.max(np.array([np.max(plot_prediction), np.max(plot_target)]))])
 
-    plt.savefig(visualize_file + ".png")
+    plt.savefig('./resImages/'+visualize_file + ".png")
 

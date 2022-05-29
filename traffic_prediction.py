@@ -121,7 +121,7 @@ def main():
 
     # 三种指标取平均
     print("Performance:  MAE {:2.2f}    {:2.2f}%    {:2.2f}".format(np.mean(MAE), np.mean(MAPE * 100), np.mean(RMSE)))
-
+    # mape是用来比较两个模型哪个更好的，越小越好
     Predict = np.delete(Predict, 0, axis=1) # 将第0行的0删除，因为开始定义的时候用0填充，但是时间是从1开始的
     Target = np.delete(Target, 0, axis=1)
 
@@ -159,6 +159,7 @@ if __name__ == '__main__':
     main()
     # 可视化，在下面的 Evaluation()类中，这里是对应的GAT算法运行的结果，进行可视化
     # 如果要对GCN或者chebnet进行可视化，只需要在第45行，注释修改下对应的算法即可
-    visualize_result(h5_file="GAT_result.h5",
-    nodes_id = 120, time_se = [0, 24 * 12 * 2],  # 是节点的时间范围
-    visualize_file = "gat_node_120")
+    for i in range(4):
+        visualize_result(h5_file="GAT_result.h5",
+        nodes_id = 120+10*i , time_se = [0, 24 * 12 * 2],  # 是节点的时间范围
+        visualize_file = "gat_node_"+str(120+10*i))
