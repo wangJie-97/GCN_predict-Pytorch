@@ -4,7 +4,7 @@
 
 
 # gat.py
-
+# T为时间，N为节点数，D为节点特征,B是batch分批处理？
 # -*- coding: utf-8 -*-
 
 import torch

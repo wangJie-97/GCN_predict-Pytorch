@@ -7,7 +7,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 
-def get_adjacent_matrix(distance_file: str, num_nodes: int, id_file: str = None, graph_type="connect") -> np.array:
+def get_adjacent_matrix(distance_file: str, num_nodes: int, id_file: str = None, graph_type="distance") -> np.array:
     """
     :param distance_file: str, path of csv file to save the distances between nodes.
     :param num_nodes: int, number of nodes in the graph

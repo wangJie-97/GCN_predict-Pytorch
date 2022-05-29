@@ -11,7 +11,7 @@ def get_flow(file_name):  # 将读取文件写成一个函数
     flow_data = np.load(file_name)  # 载入交通流量数据
     print([key for key in flow_data.keys()])  # 打印看看key是什么
 
-    print('before flow_data',flow_data["data"].shape)  # (16992, 307, 3)，16992是时间(59*24*12)，307是节点数，3表示每一维特征的维度（类似于二维的列）
+    print('before flow_data',flow_data["data"].shape)  # (16992, 307, 3)，16992是时间(59*24*12)，307是节点数，3表示每一维特征的维度（类似于二维的列）每个小时有12个5分钟
     # flow_data = flow_data['data']  # [T, N, D]，T为时间，N为节点数，D为节点特征
     # print('Before flow_data',flow_data.shape)
 
