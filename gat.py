@@ -57,6 +57,7 @@ class GATSubNet(nn.Module): # 这个是多头注意力机制
         # 用循环来增加多注意力， 用nn.ModuleList变成一个大的并行的网络
         self.attention_module = nn.ModuleList(
             [GraphAttentionLayer(in_c, hid_c) for _ in range(n_heads)])  # in_c为输入特征维度，hid_c为隐藏层特征维度
+        # 要不把时间块的处理放在这里？
 
         # 上面的多头注意力都得到了不一样的结果，使用注意力层给聚合起来
         self.out_att = GraphAttentionLayer(hid_c * n_heads, out_c)
@@ -68,94 +69,72 @@ class GATSubNet(nn.Module): # 这个是多头注意力机制
         """
         :param inputs: [B, N, C]
         :param graph: [N, N]
-        :return:
+        :return: [B, N, hid_c * n_heads]
         """
         # 每一个注意力头用循环取出来，放入list里，然后在最后一维串联起来
-        outputs = torch.cat([attn(inputs, graph) for attn in self.attention_module], dim=-1)  # [B, N, hid_c * h_head]
+
+        outputs = torch.cat([attn(inputs, graph) for attn in self.attention_module], dim=-1)  # [B, N, hid_c * n_heads]
         outputs = self.act(outputs)
 
         outputs = self.out_att(outputs, graph)
 
         return self.act(outputs)
 
-class Temporal_Attention_layer(nn.Module):
+
+class TimeBlock(nn.Module):
     """
-    compute temporal attention scores
-    时空注意力快，如何参考？
-    它是怎么被使用的，被整合到最后输出的？
-    参数怎么耦合？
-    它返回了什么 ？与原先输入相同吗？
-    问题就是参数耦合了，找好位置即可，下次继续，这个有写头，论文可以加很多内容，参考着论文的时空块来拼接了
+    Neural network block that applies a temporal convolution to each node of
+    a graph in isolation.
     """
 
-    def __init__(self, num_of_vertices, num_of_features, num_of_timesteps):
+    def __init__(self, in_channels, out_channels, kernel_size=3):
         """
-        Temporal Attention Layer
-        :param num_of_vertices: int
-        :param num_of_features: int
-        :param num_of_timesteps: int
+        :param in_channels: Number of input features at each node in each time
+        step.
+        :param out_channels: Desired number of output channels at each node in
+        each time step.
+        :param kernel_size: Size of the 1D temporal kernel.
         """
-        super(Temporal_Attention_layer, self).__init__()
+        super(TimeBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
+        self.conv2 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
+        self.conv3 = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
 
-        global device
-        self.U_1 = torch.randn(num_of_vertices, requires_grad=True).to(device)
-        self.U_2 = torch.randn(num_of_features, num_of_vertices, requires_grad=True).to(device)
-        self.U_3 = torch.randn(num_of_features, requires_grad=True).to(device)
-        self.b_e = torch.randn(1, num_of_timesteps, num_of_timesteps, requires_grad=True).to(device)
-        self.V_e = torch.randn(num_of_timesteps, num_of_timesteps, requires_grad=True).to(device)
-
-    def forward(self, x):
+    def forward(self, X):
         """
-        Parameters
-        ----------
-        x: torch.tensor, x^{(r - 1)}_h
-                       shape is (batch_size, V, C_{r-1}, T_{r-1})
-                       相当于这里的这个项目中的data
-
-        Returns
-        ----------
-        E_normalized: torch.tensor, S', spatial attention scores
-                      shape is (batch_size, T_{r-1}, T_{r-1})
-
+        :param X: Input data of shape (batch_size, num_nodes, num_timesteps,
+        num_features=in_channels)
+        :return: Output data of shape (batch_size, num_nodes,
+        num_timesteps_out, num_features_out=out_channels)
         """
-        # _, num_of_vertices, num_of_features, num_of_timesteps = x.shape
-        # N == batch_size
-        # V == num_of_vertices
-        # C == num_of_features
-        # T == num_of_timesteps
-
-        # compute temporal attention scores
-        # shape of lhs is (N, T, V)
-        lhs = torch.matmul(torch.matmul(x.permute(0, 3, 2, 1), self.U_1),
-                           self.U_2)
-
-        # shape is (batch_size, V, T)
-        # rhs = torch.matmul(self.U_3, x.transpose((2, 0, 1, 3)))
-        rhs = torch.matmul(x.permute((0, 1, 3, 2)), self.U_3)  # Is it ok to switch the position?
-
-        product = torch.matmul(lhs, rhs)  # wd: (batch_size, T, T)
-
-        # (batch_size, T, T)
-        E = torch.matmul(self.V_e, torch.sigmoid(product + self.b_e))
-
-        # normailzation
-        E = E - torch.max(E, 1, keepdim=True)[0]
-        exp = torch.exp(E)
-        E_normalized = exp / torch.sum(exp, 1, keepdim=True)
-        return E_normalized
+        # Convert into NCHW format for pytorch to perform convolutions.
+        X = X.permute(0, 3, 1, 2)
+        temp = self.conv1(X) + torch.sigmoid(self.conv2(X))
+        out = F.relu(temp + self.conv3(X))
+        # Convert back from NCHW to NHWC
+        out = out.permute(0, 2, 3, 1)
+        return out
 
 class GATNet(nn.Module):
-    def __init__(self, in_c, hid_c, out_c, n_heads):
+    def __init__(self, in_c, hid_c, out_c, n_heads,T=5):
         super(GATNet, self).__init__()
-        self.subnet = GATSubNet(in_c, hid_c, out_c, n_heads)
-
+        self.subnet =GATSubNet(in_c, hid_c, out_c, n_heads)
+        self.timeB=TimeBlock(in_c, hid_c)
+        self.timeB2=TimeBlock(hid_c, out_c)
+        self.T=T
+        # self.subnet = nn.ModuleList([GATSubNet(in_c, hid_c, out_c, n_heads) for _ in range(T)])
     def forward(self, data, device):
         graph = data["graph"][0].to(device)  # [N, N]
         flow = data["flow_x"]  # [B, N, T, C]
+        B, N ,T, C= flow.size(0), flow.size(1),flow.size(2),flow.size(3)
+        # flow=flow.view(B,N,-1,self.in_c)
         flow = flow.to(device)  # 将流量数据送入设备
+        # t1 = self.timeB(flow)
+        t1 = self.timeB(flow)
+        # t2=self.timeB2(t1)
+        # B, N = flow.size(0), flow.size(1)
+        flow = t1.contiguous().view(B, N, -1)  # [B, N, T * C]
 
-        B, N = flow.size(0), flow.size(1)
-        flow = flow.view(B, N, -1)  # [B, N, T * C]
         """
        上面是将这一段的时间的特征数据摊平做为特征，这种做法实际上忽略了时序上的连续性
        这种做法可行，但是比较粗糙，当然也可以这么做：
@@ -164,9 +143,16 @@ class GATNet(nn.Module):
        然后用nn.ModuleList将SubNet分别拎出来处理，参考多头注意力的处理，同理
 
        """
-        # self.TAt = Temporal_Attention_layer(num_of_vertices, num_of_features, num_of_timesteps)
-        prediction = self.subnet(flow, graph).unsqueeze(2)  # [B, N, 1, C]，这个１加上就表示预测的是未来一个时刻
 
+        prediction = self.subnet(flow, graph).unsqueeze(2)
+        # x=torch.zeros(B,N,1,C)
+        # for m in self.subnet:
+        #     prediction = m(flow, graph).unsqueeze(2)
+        #     torch.add(prediction,x)
+        # res=torch.div(x,self.T)
+
+        # [B, N, 1, C]，这个１加上就表示预测的是未来一个时刻
+        # outputs = torch.cat([attn(inputs, graph) for attn in self.attention_module], dim=-1)
         return prediction
 
 
@@ -177,7 +163,7 @@ if __name__ == '__main__':  # 测试模型是否合适
 
     device = torch.device("cpu")
 
-    net = GATNet(in_c=6 * 2, hid_c=6, out_c=2, n_heads=2)
+    net = GATNet(in_c= 2, hid_c=6, out_c=2, n_heads=2)
 
     y = net(data, device)
     print(y.size())

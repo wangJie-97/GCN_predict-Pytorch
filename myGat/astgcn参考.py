@@ -404,11 +404,12 @@ class ASTGCN(nn.Module):
         x_list: list[torch.tensor],
                 shape of each element is (batch_size, num_of_vertices,
                                         num_of_features, num_of_timesteps)
-
+        正好依次对应BNDT
         Returns
         ----------
         Y_hat: torch.tensor,
                shape is (batch_size, num_of_vertices, num_for_prediction)
+               对应BN预测
         """
         if debug_on:
             for x in x_list:

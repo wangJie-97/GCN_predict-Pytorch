@@ -57,5 +57,5 @@ def visualize_result(h5_file, nodes_id, time_se, visualize_file):
               np.min(np.array([np.min(plot_prediction), np.min(plot_target)])),
               np.max(np.array([np.max(plot_prediction), np.max(plot_target)]))])
 
-    plt.savefig('./resImagesWithDistance/'+visualize_file + ".png")
+    plt.savefig('./resTry/'+visualize_file + ".png")
 

@@ -92,7 +92,7 @@ class LoadData(Dataset):  # 这个就是把读入的数据处理成模型需要�
         self.train_mode = train_mode
         self.train_days = divide_days[0]  # 59-14 = 45, train_data
         self.test_days = divide_days[1]  # 7*2 = 14 ,test_data
-        self.history_length = history_length  # 30/5 = 6, 历史长度为6
+        self.history_length = history_length  # 30/5 = 6, 历史长度为6数据量
         self.time_interval = time_interval  # 5 min
 
         self.one_day_length = int(24 * 60 / self.time_interval) # 一整天的数据量

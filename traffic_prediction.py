@@ -45,10 +45,10 @@ def main():
     # 第二步：定义模型（这里其实只是加载模型，关于模型的定义在下面单独写了，先假设已经写好）
     # my_net = GCN(in_c=6, hid_c=6, out_c=1)  # 加载GCN模型
     # my_net = ChebNet(in_c=6, hid_c=6, out_c=1, K=2)   # 加载ChebNet模型
-    my_net = GATNet(in_c=6 * 1, hid_c=6, out_c=1, n_heads=2)  # 加载GAT模型
+    my_net = GATNet(in_c=6 * 1, hid_c=6, out_c=1, n_heads=2)  # 加载GAT模型，我尝试在这里直接加BNT,可在上面获得B=64，N=307，T=5min
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
-
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
+    device=torch.device("cpu")
     my_net = my_net.to(device)  # 模型送入设备
 
     # 第三步：定义损失函数和优化器
