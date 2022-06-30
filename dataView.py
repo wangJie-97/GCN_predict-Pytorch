@@ -82,17 +82,19 @@ def slice_data(data, history_length, index, train_mode): #根据历史长度,下
     print('data',data.shape)
     data_x = data[:, start_index: end_index]  # 在切第二维，不包括end_index
     data_y = data[:, end_index]  # 把上面的end_index取上
-
+    # data_x是整个数据的一段范围的切片，data_y是这个切片的后面一段，1行1列，我还不知道单独切出来干嘛
     return data_x, data_y
 
 # 做工程、项目等第一步对拿来的数据进行可视化的直观分析
 if __name__ == "__main__":
     traffic_data = get_flow("PeMS_04/PeMS04.npz")
-
+    # data_120=traffic_data[120]
+    # print(data_120.shape)
     norm_base, norm_data = pre_process_data(traffic_data,1)
-    data_x, data_y = slice_data(norm_data,5,100,'train')
+    # print(norm_data.shape)
+    data_x, data_y = slice_data(norm_data,10,100,'train')
 
     # print('norm_data',norm_data.shape)
-    # print('data_x',data_x.shape)
-    # print('data_y',data_y.shape)
+    print('data_x',data_x[120])
+    print('data_y',data_y[120])
     # print(norm_data)
