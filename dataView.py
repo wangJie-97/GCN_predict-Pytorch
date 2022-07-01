@@ -1,17 +1,15 @@
-# @Time    : 2020/8/25
-# @Author  : LeronQ
-# @github  : https://github.com/LeronQ
+# 该文件是用来读取数据，做一些图
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+from paint_2d import paint
 
 def get_flow(file_name):  # 将读取文件写成一个函数
 
     flow_data = np.load(file_name)  # 载入交通流量数据
-    print([key for key in flow_data.keys()])  # 打印看看key是什么
+    # print([key for key in flow_data.keys()])  # 打印看看key是什么
 
-    print('before flow_data',flow_data["data"].shape)  # (16992, 307, 3)，16992是时间(59*24*12)，307是节点数，3表示每一维特征的维度（类似于二维的列）每个小时有12个5分钟
+    # print('before flow_data',flow_data["data"].shape)  # (16992, 307, 3)，16992是时间(59*24*12)，307是节点数，3表示每一维特征的维度（类似于二维的列）每个小时有12个5分钟
     # flow_data = flow_data['data']  # [T, N, D]，T为时间，N为节点数，D为节点特征
     # print('Before flow_data',flow_data.shape)
 
@@ -79,22 +77,35 @@ def slice_data(data, history_length, index, train_mode): #根据历史长度,下
     else:
         raise ValueError("train model {} is not defined".format(train_mode))
 
-    print('data',data.shape)
+    # print('data',data.shape)
     data_x = data[:, start_index: end_index]  # 在切第二维，不包括end_index
     data_y = data[:, end_index]  # 把上面的end_index取上
     # data_x是整个数据的一段范围的切片，data_y是这个切片的后面一段，1行1列，我还不知道单独切出来干嘛
-    return data_x, data_y
+    return data_x
 
 # 做工程、项目等第一步对拿来的数据进行可视化的直观分析
 if __name__ == "__main__":
     traffic_data = get_flow("PeMS_04/PeMS04.npz")
-    # data_120=traffic_data[120]
-    # print(data_120.shape)
-    norm_base, norm_data = pre_process_data(traffic_data,1)
-    # print(norm_data.shape)
-    data_x, data_y = slice_data(norm_data,10,100,'train')
 
-    # print('norm_data',norm_data.shape)
-    print('data_x',data_x[120])
-    print('data_y',data_y[120])
-    # print(norm_data)
+    norm_base, norm_data = pre_process_data(traffic_data,1)
+
+    his_len=1600
+    data_x = slice_data(norm_data,his_len,300,'train')
+
+
+    x=np.linspace(0,his_len-1,his_len)
+    # print(x,data_x[120].shape)
+    paint(x,data_x[120],'5天内','fiveDays')
+#     绘制单日图，想办法获取时长
+    oneDay=300
+    x1=np.linspace(0,oneDay-1,oneDay)
+    y1=slice_data(norm_data,oneDay,600,'train')
+    paint(x1, y1[120], '1天内','oneDay')
+
+#     比较3个距离较近的传感器数据
+    x3=np.linspace(0,his_len-1,his_len)
+    y3=data_x[130]
+    y4=data_x[140]
+    y5=data_x[150]
+
+

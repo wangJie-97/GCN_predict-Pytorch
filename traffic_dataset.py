@@ -1,6 +1,4 @@
-# @Time    : 2020/8/25 
-# @Author  : LeronQ
-# @github  : https://github.com/LeronQ
+# 该文件是为神经网络读入数据作准备
 
 import csv
 import torch
